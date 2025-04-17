@@ -1,10 +1,17 @@
 "use client";
 
+import { memo, useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
-import { Search, ShoppingCart, User, Menu, X, ChevronDown } from "lucide-react";
-import { useState, useEffect } from "react";
+import {
+  Search,
+  ShoppingCart,
+  User,
+  Menu,
+  X,
+  Package2,
+  ChevronDown,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -15,101 +22,172 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import {
-  NavigationMenu,
-  NavigationMenuContent,
-  NavigationMenuItem,
-  NavigationMenuLink,
-  NavigationMenuList,
-  NavigationMenuTrigger,
-  navigationMenuTriggerStyle,
-} from "@/components/ui/navigation-menu";
 import { useSession } from "@/app/sessionProvider";
 import { logout } from "@/app/(auth)/actions";
+import { useRouter } from "next/navigation";
+import { useCart } from "@/hooks/useCart";
+import { formatPrice } from "@/lib/formatPrice";
+import Image from "next/image";
+import ThemeSwitcher from "@/components/ThemeSwitcher";
 
-const categories = [
-  {
-    name: "Clothing",
-    slug: "clothing",
-    featured: [
-      { name: "New Arrivals", href: "/category/clothing/new" },
-      { name: "Summer Collection", href: "/category/clothing/summer" },
-    ],
-    subcategories: [
-      { name: "Men", href: "/category/clothing/men" },
-      { name: "Women", href: "/category/clothing/women" },
-      { name: "Kids", href: "/category/clothing/kids" },
-      { name: "Accessories", href: "/category/clothing/accessories" },
-    ],
-  },
-  {
-    name: "Electronics",
-    slug: "electronics",
-    featured: [
-      { name: "Latest Gadgets", href: "/category/electronics/latest" },
-      { name: "Smart Home", href: "/category/electronics/smart-home" },
-    ],
-    subcategories: [
-      { name: "Phones", href: "/category/electronics/phones" },
-      { name: "Laptops", href: "/category/electronics/laptops" },
-      { name: "Audio", href: "/category/electronics/audio" },
-      { name: "Wearables", href: "/category/electronics/wearables" },
-    ],
-  },
-  {
-    name: "Home & Garden",
-    slug: "home",
-    featured: [
-      { name: "Interior Design", href: "/category/home/interior" },
-      { name: "Outdoor Living", href: "/category/home/outdoor" },
-    ],
-    subcategories: [
-      { name: "Furniture", href: "/category/home/furniture" },
-      { name: "Kitchen", href: "/category/home/kitchen" },
-      { name: "Decor", href: "/category/home/decor" },
-      { name: "Garden", href: "/category/home/garden" },
-    ],
-  },
-  {
-    name: "Beauty",
-    slug: "beauty",
-    featured: [
-      { name: "New Arrivals", href: "/category/beauty/new" },
-      { name: "Trending", href: "/category/beauty/trending" },
-    ],
-    subcategories: [
-      { name: "Skincare", href: "/category/beauty/skincare" },
-      { name: "Makeup", href: "/category/beauty/makeup" },
-      { name: "Hair Care", href: "/category/beauty/hair" },
-      { name: "Fragrances", href: "/category/beauty/fragrances" },
-    ],
-  },
-];
+// Sử dụng DropdownMenu thay vì NavigationMenu
+const CategoryNavItems = memo(({ categories }: { categories: any[] }) => (
+  <div className="hidden md:flex items-center space-x-1">
+    {categories.map((category) => (
+      <DropdownMenu key={category.slug}>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            className="flex items-center gap-1 rounded-md px-3 py-2"
+          >
+            {category.name}
+            <ChevronDown className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent
+          align="center"
+          className="w-[500px] p-0"
+          sideOffset={8}
+        >
+          <div className="grid grid-cols-2 gap-3 p-4">
+            <div>
+              <h3 className="font-medium text-sm mb-2 text-primary">
+                Featured
+              </h3>
+              <ul className="space-y-2">
+                {category.featured?.map((item: any) => (
+                  <DropdownMenuItem key={item.href} asChild className="p-0">
+                    <Link
+                      href={item.href}
+                      className="text-sm hover:text-primary transition-colors px-2 py-1.5 w-full"
+                    >
+                      {item.name}
+                    </Link>
+                  </DropdownMenuItem>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h3 className="font-medium text-sm mb-2 text-primary">
+                Categories
+              </h3>
+              <ul className="space-y-2">
+                {category.subcategories?.map((item: any) => (
+                  <DropdownMenuItem key={item.href} asChild className="p-0">
+                    <Link
+                      href={item.href}
+                      className="text-sm hover:text-primary transition-colors px-2 py-1.5 w-full"
+                    >
+                      {item.name}
+                    </Link>
+                  </DropdownMenuItem>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    ))}
+  </div>
+));
+CategoryNavItems.displayName = "CategoryNavItems";
 
-export function Header() {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isScrolled, setIsScrolled] = useState(false);
-  const [cartItemCount, setCartItemCount] = useState(3);
+// Simplified search input that only searches on submit or Enter key
+const HeaderSearchInput = memo(
+  ({ onSearch }: { onSearch: (query: string) => void }) => {
+    const [searchValue, setSearchValue] = useState("");
 
-  // Add scroll effect
-  useEffect(() => {
-    const handleScroll = () => {
-      if (window.scrollY > 10) {
-        setIsScrolled(true);
-      } else {
-        setIsScrolled(false);
+    const handleSubmit = (e: React.FormEvent) => {
+      e.preventDefault();
+      if (searchValue.trim()) {
+        onSearch(searchValue.trim());
       }
     };
 
-    window.addEventListener("scroll", handleScroll);
+    return (
+      <form
+        onSubmit={handleSubmit}
+        className="hidden md:flex relative w-full max-w-sm"
+      >
+        <div className="relative w-full">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="search"
+            placeholder="Search products..."
+            className="pl-10 pr-4 h-9 rounded-full border-muted"
+            value={searchValue}
+            onChange={(e) => setSearchValue(e.target.value)}
+          />
+          <Button
+            type="submit"
+            size="sm"
+            variant="ghost"
+            className="absolute right-1 top-1/2 transform -translate-y-1/2 h-7 w-7 p-0"
+            aria-label="Search"
+          >
+            <Search className="h-4 w-4" />
+          </Button>
+        </div>
+      </form>
+    );
+  }
+);
+HeaderSearchInput.displayName = "HeaderSearchInput";
+
+export function Header({ categories }: { categories: any[] }) {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const { user } = useSession();
+  const router = useRouter();
+  const { items, cartCount } = useCart();
+
+  // Calculate subtotal from cart items
+  const subtotal = useMemo(() => {
+    return items.reduce((total, item) => {
+      return total + Number(item.price) * item.quantity;
+    }, 0);
+  }, [items]);
+
+  // Optimized scroll handler with RAF
+  useEffect(() => {
+    let ticking = false;
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          setIsScrolled(window.scrollY > 10);
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const toggleMenu = () => {
-    setIsMenuOpen(!isMenuOpen);
+  const handleSearch = useCallback(
+    (query: string) => {
+      if (query.trim()) {
+        router.push(`/search?q=${encodeURIComponent(query.trim())}`);
+      }
+    },
+    [router]
+  );
+
+  const handleMobileSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+      setIsMenuOpen(false);
+    }
   };
 
-  const { user } = useSession();
+  const handleLogout = useCallback(async () => {
+    await logout();
+    router.push("/login");
+  }, [router]);
+
   return (
     <header
       className={cn(
@@ -119,116 +197,36 @@ export function Header() {
           : "bg-background"
       )}
     >
-      {/* Top bar - optional promo or free shipping message */}
-      <div className="bg-primary py-2 text-primary-foreground text-center text-sm hidden md:block">
-        <p>
-          Free shipping on orders over $50 |{" "}
-          <span className="font-medium">Shop now</span>
-        </p>
-      </div>
-
-      <div className="container flex h-16 items-center justify-between p-3">
-        <div className="flex items-center gap-4">
-          <div className="md:hidden">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={toggleMenu}
-              aria-label="Toggle Menu"
-              className="rounded-full"
-            >
-              {isMenuOpen ? (
-                <X className="h-5 w-5" />
-              ) : (
-                <Menu className="h-5 w-5" />
-              )}
-            </Button>
-          </div>
+      <div className="container mx-auto px-4">
+        <div className="flex h-16 items-center justify-between gap-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="md:hidden"
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+          >
+            {isMenuOpen ? (
+              <X className="h-5 w-5" />
+            ) : (
+              <Menu className="h-5 w-5" />
+            )}
+            <span className="sr-only">nhấn để mở menu</span>
+          </Button>
 
           <Link href="/" className="flex items-center space-x-2">
-            <span className="font-bold text-xl tracking-tight">ELEGANCE</span>
+            <span className="text-xl font-bold">Store</span>
           </Link>
 
-          <NavigationMenu className="hidden md:flex">
-            <NavigationMenuList>
-              {categories.map((category) => (
-                <NavigationMenuItem key={category.slug}>
-                  <NavigationMenuTrigger>{category.name}</NavigationMenuTrigger>
-                  <NavigationMenuContent>
-                    <div className="grid grid-cols-2 gap-3 p-4 w-[500px]">
-                      <div>
-                        <h3 className="font-medium text-sm mb-2 text-primary">
-                          Featured
-                        </h3>
-                        <ul className="space-y-2">
-                          {category.featured.map((item) => (
-                            <li key={item.href}>
-                              <NavigationMenuLink asChild>
-                                <Link
-                                  href={item.href}
-                                  className="text-sm hover:text-primary transition-colors"
-                                >
-                                  {item.name}
-                                </Link>
-                              </NavigationMenuLink>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                      <div>
-                        <h3 className="font-medium text-sm mb-2 text-primary">
-                          Categories
-                        </h3>
-                        <ul className="space-y-2">
-                          {category.subcategories.map((subcategory) => (
-                            <li key={subcategory.href}>
-                              <NavigationMenuLink asChild>
-                                <Link
-                                  href={subcategory.href}
-                                  className="text-sm hover:text-primary transition-colors"
-                                >
-                                  {subcategory.name}
-                                </Link>
-                              </NavigationMenuLink>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    </div>
-                  </NavigationMenuContent>
-                </NavigationMenuItem>
-              ))}
+          {/* Phần đã thay đổi - sử dụng CategoryNavItems component */}
+          <CategoryNavItems categories={categories} />
 
-              <NavigationMenuItem>
-                <Link href="/new-arrivals" legacyBehavior passHref>
-                  <NavigationMenuLink className={navigationMenuTriggerStyle()}>
-                    New Arrivals
-                  </NavigationMenuLink>
-                </Link>
-              </NavigationMenuItem>
-
-              <NavigationMenuItem>
-                <Link href="/deals" legacyBehavior passHref>
-                  <NavigationMenuLink className={navigationMenuTriggerStyle()}>
-                    Deals
-                  </NavigationMenuLink>
-                </Link>
-              </NavigationMenuItem>
-            </NavigationMenuList>
-          </NavigationMenu>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <div className="hidden md:flex relative w-full max-w-sm">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Search for products..."
-              className="pl-10 pr-4 h-9 rounded-full border-muted"
-            />
-          </div>
+          <HeaderSearchInput onSearch={handleSearch} />
 
           <div className="flex items-center space-x-1">
+            {/* Theme switcher */}
+            <ThemeSwitcher className="mr-1" />
+
+            {/* User account */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -249,152 +247,302 @@ export function Header() {
                     </p>
                   </div>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem>
-                    <Link href="/profile" className="flex w-full">
-                      Profile
+                  <DropdownMenuItem asChild>
+                    <Link href="/profile" className="w-full">
+                      {/* Profile */}
+                      Hồ sơ
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem>
-                    <Button onClick={() => logout()} className="flex w-full">
-                      Logout
-                    </Button>
+                  <DropdownMenuItem onSelect={handleLogout}>
+                    {/* Logout */}
+                    <span className="text-red-500">Đăng xuất</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               ) : (
                 <DropdownMenuContent align="end" className="w-56">
-                  <div className="flex flex-col space-y-2 p-2">
-                    <p className="text-sm font-medium">My Account</p>
-                    <p className="text-xs text-muted-foreground">
-                      Manage your account and settings
-                    </p>
-                  </div>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem>
-                    <Link href="/login" className="flex w-full">
-                      Sign In
+                  <DropdownMenuItem asChild>
+                    <Link href="/login" className="w-full">
+                      {/* Sign In */}
+                      Đăng nhập
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem>
-                    <Link href="/signup" className="flex w-full">
-                      signup
+                  <DropdownMenuItem asChild>
+                    <Link href="/signup" className="w-full">
+                      {/* Sign Up */}
+                      Đăng ký
                     </Link>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               )}
-              {/* <DropdownMenuContent align="end" className="w-56">
-                <div className="flex flex-col space-y-2 p-2">
-                  <p className="text-sm font-medium">My Account</p>
-                  <p className="text-xs text-muted-foreground">
-                    Manage your account and settings
-                  </p>
-                </div>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem>
-                  <Link href="/login" className="flex w-full">
-                    Sign In
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Link href="/signup" className="flex w-full">
-                    signup
-                  </Link>
-                </DropdownMenuItem>
-              </DropdownMenuContent> */}
             </DropdownMenu>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="rounded-full relative"
-              aria-label="Shopping Cart"
-            >
-              <ShoppingCart className="h-5 w-5" />
-              {cartItemCount > 0 && (
-                <Badge
-                  variant="destructive"
-                  className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-full relative"
+                  aria-label="Shopping Cart"
                 >
-                  {cartItemCount}
-                </Badge>
-              )}
-            </Button>
+                  <ShoppingCart className="h-5 w-5" />
+                  {cartCount > 0 && (
+                    <Badge
+                      variant="destructive"
+                      className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
+                    >
+                      {cartCount}
+                    </Badge>
+                  )}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-80">
+                <div className="flex flex-col space-y-4 p-4">
+                  <div className="flex justify-between items-center">
+                    <h3 className="font-medium">Giỏ hàng của bạn</h3>
+                    <span className="text-sm text-muted-foreground">
+                      {cartCount} {cartCount === 1 ? "item" : "items"}
+                    </span>
+                  </div>
+
+                  {items.length > 0 ? (
+                    <>
+                      <ul className="min-w-[320px] p-2 space-y-3">
+                        {items.length === 0 ? (
+                          <li className="py-6 px-4 text-center">
+                            <Package2 className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
+                            <p className="text-sm text-muted-foreground">
+                              Giỏ hàng của bạn đang trống
+                            </p>
+                          </li>
+                        ) : (
+                          items.slice(0, 3).map((item) => (
+                            <li
+                              key={item.id}
+                              className="flex gap-3 border-b pb-3 last:border-b-0 last:pb-0"
+                            >
+                              <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-md border">
+                                {item.image ? (
+                                  <Image
+                                    src={item.image.url}
+                                    alt={item.image.alt || item.name}
+                                    width={64}
+                                    height={64}
+                                    className="h-full w-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="flex h-full w-full items-center justify-center bg-secondary/10">
+                                    <Package2 className="h-6 w-6 text-muted-foreground" />
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex-1">
+                                <Link
+                                  href={`/product/${item.slug}`}
+                                  className="text-sm font-medium hover:text-primary"
+                                >
+                                  {item.name}
+                                </Link>
+                                <div className="flex justify-between mt-1">
+                                  <span className="text-xs text-muted-foreground">
+                                    Số lượng: {item.quantity}
+                                  </span>
+                                  <span className="text-sm font-medium">
+                                    {formatPrice(item.subtotal)}
+                                  </span>
+                                </div>
+                              </div>
+                            </li>
+                          ))
+                        )}
+                      </ul>
+
+                      {items.length > 3 && (
+                        <p className="text-sm text-muted-foreground text-center">
+                          và {items.length - 3} nhiều sản phẩm khác
+                        </p>
+                      )}
+
+                      <div className="border-t pt-4">
+                        <div className="flex justify-between text-sm">
+                          <p>Tổng cộng ({cartCount})</p>
+                          <p className="font-medium">{formatPrice(subtotal)}</p>
+                        </div>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Phí vận chuyển và thuế sẽ được tính tại trang thanh
+                          toán
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Button asChild className="w-full">
+                          <Link href="/cart">Giỏ hàng ({cartCount})</Link>
+                        </Button>
+                        <Button asChild variant="secondary" className="w-full">
+                          <Link href="/checkout">Thanh toán</Link>
+                        </Button>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-8 text-center">
+                      <ShoppingCart className="h-12 w-12 text-muted-foreground mb-4" />
+                      <h4 className="text-lg font-medium mb-2">
+                        Giỏ hàng của bạn trống
+                      </h4>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Thêm sản phẩm vào giỏ hàng để bắt đầu mua sắm
+                      </p>
+                      <Button asChild variant="secondary">
+                        <Link href="/product">Bắt đầu mua sắm</Link>
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </div>
 
-      {/* Mobile Menu */}
+      {/* Mobile menu */}
       {isMenuOpen && (
-        <div className="md:hidden border-t fixed inset-0 top-16 z-40 bg-background overflow-y-auto">
+        <div className="md:hidden border-t fixed inset-0 top-16 z-50 bg-background overflow-y-auto">
           <div className="container py-6">
-            <div className="relative mb-6">
+            {/* Mobile search form */}
+            <form onSubmit={handleMobileSearch} className="mb-6 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 type="search"
                 placeholder="Search products..."
                 className="pl-10 w-full rounded-full"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
               />
-            </div>
+              <Button
+                type="submit"
+                size="sm"
+                variant="ghost"
+                className="absolute right-1 top-1/2 transform -translate-y-1/2 h-7 w-7 p-0"
+                aria-label="Search"
+              >
+                <Search className="h-4 w-4" />
+              </Button>
+            </form>
 
             <nav className="space-y-6">
               {categories.map((category) => (
                 <div key={category.slug} className="space-y-3">
-                  <div className="flex items-center justify-between border-b pb-2">
-                    <h3 className="font-medium">{category.name}</h3>
-                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                  <ul className="grid grid-cols-2 gap-x-4 gap-y-2 pl-2">
-                    {category.subcategories.map((subcategory) => (
-                      <li key={subcategory.href}>
-                        <Link
-                          href={subcategory.href}
-                          className="text-sm text-muted-foreground hover:text-foreground"
-                          onClick={toggleMenu}
-                        >
-                          {subcategory.name}
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
+                  <h3 className="font-medium text-sm text-primary">
+                    {category.name}
+                  </h3>
+
+                  {/* Featured items */}
+                  {category.featured && category.featured.length > 0 && (
+                    <div className="mb-4">
+                      <h4 className="text-xs uppercase text-muted-foreground mb-2">
+                        Nổi bật
+                      </h4>
+                      <ul className="space-y-2">
+                        {category.featured.map((item: any) => (
+                          <li key={item.href}>
+                            <Link
+                              href={item.href}
+                              className="text-sm hover:text-primary"
+                              onClick={() => setIsMenuOpen(false)}
+                            >
+                              {item.name}
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Subcategories */}
+                  {category.subcategories &&
+                    category.subcategories.length > 0 && (
+                      <div>
+                        <h4 className="text-xs uppercase text-muted-foreground mb-2">
+                          Danh mục
+                        </h4>
+                        <ul className="space-y-2">
+                          {category.subcategories.map((item: any) => (
+                            <li key={item.href}>
+                              <Link
+                                href={item.href}
+                                className="text-sm hover:text-primary"
+                                onClick={() => setIsMenuOpen(false)}
+                              >
+                                {item.name}
+                              </Link>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                 </div>
               ))}
 
-              <div className="space-y-3 pt-4 border-t">
-                <Link
-                  href="/new-arrivals"
-                  className="block font-medium py-2"
-                  onClick={toggleMenu}
-                >
-                  New Arrivals
-                </Link>
-                <Link
-                  href="/deals"
-                  className="block font-medium py-2"
-                  onClick={toggleMenu}
-                >
-                  Deals
-                </Link>
-                <Link
-                  href="/about"
-                  className="block font-medium py-2"
-                  onClick={toggleMenu}
-                >
-                  About
-                </Link>
-                <Link
-                  href="/contact"
-                  className="block font-medium py-2"
-                  onClick={toggleMenu}
-                >
-                  Contact
-                </Link>
-              </div>
-
-              <div className="pt-6 border-t">
-                <Button variant="default" className="w-full mb-3">
-                  Sign In
-                </Button>
-                <Button variant="outline" className="w-full">
-                  Create Account
-                </Button>
+              {/* User account links on mobile */}
+              <div className="pt-4 border-t">
+                <h3 className="font-medium text-sm text-primary mb-3">
+                  {user ? "Tài khoản của bạn" : "Tài khoản"}
+                </h3>
+                <ul className="space-y-2">
+                  {user ? (
+                    <>
+                      <li>
+                        <Link
+                          href="/profile"
+                          className="text-sm hover:text-primary"
+                          onClick={() => setIsMenuOpen(false)}
+                        >
+                          Hồ sơ
+                        </Link>
+                      </li>
+                      <li>
+                        <Link
+                          href="/orders"
+                          className="text-sm hover:text-primary"
+                          onClick={() => setIsMenuOpen(false)}
+                        >
+                          Đơn hàng
+                        </Link>
+                      </li>
+                      <li>
+                        <button
+                          className="text-sm text-red-500 hover:text-red-700"
+                          onClick={() => {
+                            handleLogout();
+                            setIsMenuOpen(false);
+                          }}
+                        >
+                          Đăng xuất
+                        </button>
+                      </li>
+                    </>
+                  ) : (
+                    <>
+                      <li>
+                        <Link
+                          href="/login"
+                          className="text-sm hover:text-primary"
+                          onClick={() => setIsMenuOpen(false)}
+                        >
+                          Đăng nhập
+                        </Link>
+                      </li>
+                      <li>
+                        <Link
+                          href="/signup"
+                          className="text-sm hover:text-primary"
+                          onClick={() => setIsMenuOpen(false)}
+                        >
+                          Đăng ký
+                        </Link>
+                      </li>
+                    </>
+                  )}
+                </ul>
               </div>
             </nav>
           </div>

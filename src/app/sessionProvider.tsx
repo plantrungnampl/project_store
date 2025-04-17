@@ -9,6 +9,7 @@ import React, { createContext, useContext } from "react";
 //   createdAt?: Date;
 //   updatedAt?: Date;
 // }
+import { WishlistProvider } from "@/context/WishlistContext";
 
 interface User {
   id: string;
@@ -41,7 +42,10 @@ export default function SessionProvider({
   value,
 }: React.PropsWithChildren<{ value: SessionContext }>) {
   return (
-    <SessionContext.Provider value={value}>{children}</SessionContext.Provider>
+    <SessionContext.Provider value={value}>
+      <WishlistProvider>{children}</WishlistProvider>
+      {/* {children} */}
+    </SessionContext.Provider>
   );
 }
 export const useSession = () => {

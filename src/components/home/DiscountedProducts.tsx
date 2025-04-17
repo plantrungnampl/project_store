@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ProductCard } from "@/components/ProductCard";
+// import { ProductCard } from "@/components/ProductCard";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 
@@ -82,12 +82,12 @@ export default function DiscountedProducts({
 
             <div className="flex gap-4">
               <Button asChild>
-                <Link href={`/products/${sortedProducts[0].slug}`}>
+                <Link href={`/product/${sortedProducts[0].slug}`}>
                   Mua ngay
                 </Link>
               </Button>
               <Button variant="outline">
-                <Link href="/sale">Xem thêm ưu đãi</Link>
+                <Link href="/product?filter=sale">Xem thêm ưu đãi</Link>
               </Button>
             </div>
           </div>
@@ -108,7 +108,7 @@ export default function DiscountedProducts({
 
               <div className="flex-1">
                 <Link
-                  href={`/products/${product.slug}`}
+                  href={`/product/${product.slug}`}
                   className="hover:text-primary"
                 >
                   <h4 className="font-medium text-gray-900">{product.name}</h4>
@@ -135,7 +135,7 @@ export default function DiscountedProducts({
               </div>
 
               <Button size="sm" variant="outline" asChild>
-                <Link href={`/products/${product.slug}`}>Xem</Link>
+                <Link href={`/product/${product.slug}`}>Xem</Link>
               </Button>
             </div>
           ))}
@@ -145,7 +145,7 @@ export default function DiscountedProducts({
       {/* Xem tất cả button */}
       <div className="flex justify-center mt-8">
         <Link
-          href="/sale"
+          href="/product?filter=sale"
           className="inline-flex items-center gap-2 rounded-md border border-primary px-6 py-3 text-primary hover:bg-primary/5 transition-colors"
         >
           Xem tất cả sản phẩm giảm giá <ArrowRight className="h-4 w-4" />

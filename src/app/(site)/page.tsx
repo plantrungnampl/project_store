@@ -1,24 +1,14 @@
-// "use client";
-// import { ProductList } from "@/components/shared/Product/ProductList";
-// import React from "react";
-
-// export default function Home() {
-//   return (
-//     <div className="container mx-auto px-4 py-8 space-y-8">
-//       <div></div>
-//     </div>
-//   );
-// }
-// import { getHomePageData } from "@/app/actions/homeActions";
-
 import FeaturedProducts from "@/components/home/FeaturedProducts";
 import { getHomePageData } from "../actions/homePageActions";
 import CategoryShowcase from "@/components/home/CategoryShowcase";
 import NewArrivals from "@/components/home/NewArrivals";
-import PromotionBanner from "@/components/home/PromotionBanner";
 import DiscountedProducts from "@/components/home/DiscountedProducts";
 import TopSellingProducts from "@/components/home/TopSellingProducts";
 import BrandShowcase from "@/components/home/BrandShowcase";
+import {
+  CategoryBannerContainer,
+  PromoBannerContainer,
+} from "@/components/layout/BannerContainer";
 
 export default async function HomePage() {
   const {
@@ -86,7 +76,8 @@ export default async function HomePage() {
       </section>
 
       {/* Banner khuyến mãi */}
-      <PromotionBanner />
+      {/* <PromotionBanner /> */}
+      <PromoBannerContainer />
 
       {/* Sản phẩm giảm giá */}
       <section className="py-16 bg-white">
@@ -139,6 +130,7 @@ export default async function HomePage() {
 
       {/* Newsletter Signup */}
       {/* <NewsletterSignup /> */}
+      <CategoryBannerContainer />
     </main>
   );
 }

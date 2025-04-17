@@ -61,7 +61,7 @@ export default function TopSellingProducts({
       {/* Xem tất cả button */}
       <div className="flex justify-center mt-8">
         <Link
-          href="/products?sort=bestselling"
+          href="/product/bestselling?sort=bestselling"
           className="flex items-center gap-2 text-primary hover:underline font-medium transition-colors"
         >
           Xem tất cả sản phẩm bán chạy <ArrowRight className="h-4 w-4" />

@@ -1,7 +1,7 @@
 "use server";
 import { HeroBanner } from "@/components/layout/Banner";
-import { Header } from "@/components/layout/Header";
-import { validateRequest } from "@/lib/auth";
+// import { Header } from "@/components/layout/Header";
+import { validateRequest } from "@/auth";
 import { redirect } from "next/navigation";
 import SessionProvider from "../sessionProvider";
 
@@ -15,7 +15,7 @@ export default async function RootLayout({
   return (
     <SessionProvider value={session}>
       <div className=" bg-gray-100">
-        <Header />
+        {/* <Header /> */}
         <div className="max-w-7xl mx-auto w-full mt-16 ">
           <HeroBanner />
         </div>

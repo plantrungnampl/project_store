@@ -25,7 +25,7 @@ export default function BrandShowcase({ brands }: BrandShowcaseProps) {
     if (!scrollContainerRef.current || brands.length <= 5) return;
 
     let scrolling = true;
-    const scrollAmount = 0.5; // Tốc độ scroll (pixels/frame)
+    const scrollAmount = 0.5;
     let animationFrameId: number;
 
     const scroll = () => {
@@ -112,7 +112,7 @@ export default function BrandShowcase({ brands }: BrandShowcaseProps) {
         ))}
       </div>
 
-      <Link
+      {/* <Link
         href="/brands"
         className="self-center mt-6 text-primary hover:text-primary-700 font-medium flex items-center gap-1"
       >
@@ -131,7 +131,7 @@ export default function BrandShowcase({ brands }: BrandShowcaseProps) {
             d="M9 5l7 7-7 7"
           />
         </svg>
-      </Link>
+      </Link> */}
     </div>
   );
 }

@@ -45,13 +45,59 @@ model User {
   notifications  Notification[]
   sessions       Session[]
 
+  reviewHelpfulMarks ReviewHelpful[]
+  reviewReports      ReviewReport[]
+
   // Security
   passwordResetToken     String?   @unique
   passwordResetExpiresAt DateTime?
+  Banner                 Banner[]
 
   @@unique([providerType, providerId])
   @@index([email])
   @@map("users")
+}
+
+enum ReportStatus {
+  PENDING
+  REVIEWED
+  REJECTED
+  ACCEPTED
+}
+
+model ReviewReport {
+  id        String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  reviewId  String       @db.Uuid
+  userId    String       @db.Uuid
+  reason    String
+  status    ReportStatus @default(PENDING)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  // Relations
+  review Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([reviewId])
+  @@index([userId])
+  @@index([status])
+  @@map("review_reports")
+}
+
+model ReviewHelpful {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  reviewId  String   @db.Uuid
+  userId    String   @db.Uuid
+  createdAt DateTime @default(now())
+
+  // Relations
+  review Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([reviewId, userId])
+  @@index([reviewId])
+  @@index([userId])
+  @@map("review_helpfuls")
 }
 
 enum UserRole {
@@ -337,22 +383,23 @@ model ProductVariantImage {
 }
 
 model Review {
-  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  productId  String   @db.Uuid
-  userId     String   @db.Uuid
-  rating     Int
-  title      String?
-  comment    String?
-  isVerified Boolean  @default(false) // Verified purchase
-  isApproved Boolean  @default(false) // Moderation status
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id           String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  productId    String          @db.Uuid
+  userId       String          @db.Uuid
+  rating       Int
+  title        String?
+  comment      String?
+  isVerified   Boolean         @default(false) // Verified purchase
+  isApproved   Boolean         @default(false) // Moderation status
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  helpfulMarks ReviewHelpful[]
+  reports      ReviewReport[]
 
   // Relations
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([productId, userId])
   @@index([productId])
   @@index([userId])
   @@map("reviews")
@@ -670,6 +717,47 @@ enum CouponType {
   PERCENTAGE
   FIXED_AMOUNT
   FREE_SHIPPING
+}
+
+// Thêm vào cuối file prisma/schema.prisma
+
+// ==================== BANNER MANAGEMENT ====================
+
+model Banner {
+  id             String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title          String
+  subtitle       String?
+  description    String?
+  ctaText        String // Nút Call-to-Action
+  ctaLink        String // Link của nút CTA
+  imageUrl       String
+  mobileImageUrl String?
+  position       String? // left/right/center
+  color          String? // Background color (CSS class)
+  textColor      String? // Text color (CSS class)
+  buttonVariant  String? // default/secondary/outline/ghost
+  isActive       Boolean    @default(true)
+  sortOrder      Int        @default(0)
+  type           BannerType @default(HERO)
+  startDate      DateTime? // Ngày bắt đầu hiển thị
+  endDate        DateTime? // Ngày kết thúc hiển thị
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  createdBy      String?    @db.Uuid
+  updatedBy      String?    @db.Uuid
+
+  // Relations
+  user User? @relation(fields: [createdBy], references: [id])
+
+  @@index([isActive])
+  @@index([type])
+  @@map("banners")
+}
+
+enum BannerType {
+  HERO // Banner chính ở trang chủ
+  PROMO // Banner khuyến mãi
+  CATEGORY // Banner danh mục
 }
 
 // ==================== CONFIGURATIONS ====================

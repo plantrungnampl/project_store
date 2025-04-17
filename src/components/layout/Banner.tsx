@@ -144,13 +144,13 @@ export function HeroBanner() {
                   <p className="text-sm md:text-base text-muted-foreground max-w-md mx-auto md:mx-0">
                     {currentBanner.description}
                   </p>
-                  <div className="pt-2">
+                  {/* <div className="pt-2">
                     <Link href={currentBanner.ctaLink}>
                       <Button size="lg" className="rounded-full px-8">
                         {currentBanner.cta}
                       </Button>
                     </Link>
-                  </div>
+                  </div> */}
                 </div>
               </div>
             </div>
@@ -232,9 +232,9 @@ export function PromoBanner() {
                 placeholder="Enter your email"
                 className="px-4 py-2 rounded-full bg-primary-foreground/10 border border-primary-foreground/20 text-primary-foreground placeholder:text-primary-foreground/60 focus:outline-none focus:ring-2 focus:ring-white"
               />
-              <Button variant="secondary" className="rounded-full font-medium">
+              {/* <Button variant="secondary" className="rounded-full font-medium">
                 Subscribe
-              </Button>
+              </Button> */}
             </div>
           </div>
           <div className="hidden md:block">

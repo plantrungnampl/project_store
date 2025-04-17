@@ -79,7 +79,7 @@ export default function PromotionBanner() {
               className="bg-white text-primary hover:bg-white/90"
               size="lg"
             >
-              <Link href="/sale">Mua ngay</Link>
+              <Link href="/product?filter=sale">Mua ngay</Link>
             </Button>
           </div>
 

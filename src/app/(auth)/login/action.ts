@@ -8,8 +8,9 @@ import { verify } from "@node-rs/argon2";
 import { cookies } from "next/headers";
 // import { redirect } from "next/navigation";
 import { loginSchema, LoginValues } from "@/validation";
-import { lucia } from "@/lib/auth";
+// import { lucia } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { lucia } from "@/config/auth-config";
 
 export async function LoginLucia(
   data: LoginValues

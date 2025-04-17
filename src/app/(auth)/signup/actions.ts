@@ -1,6 +1,6 @@
 "use server";
 
-import { lucia } from "@/lib/auth";
+import { lucia } from "@/config/auth-config";
 import { prisma } from "@/lib/prisma";
 import { registerSchema } from "@/validation";
 import { hash } from "@node-rs/argon2";

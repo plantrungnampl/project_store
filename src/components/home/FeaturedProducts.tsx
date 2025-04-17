@@ -107,7 +107,8 @@ export default function FeaturedProducts({ products }: FeaturedProductsProps) {
       {/* View all products button */}
       <div className="flex justify-center mt-8">
         <Link
-          href="/products?featured=true"
+          href="/product?featured=true"
+          // href="/product?sort=newest&filter=new&showFilters=true"
           className="flex items-center gap-2 px-6 py-3 text-white bg-primary rounded-md hover:bg-primary/90 transition-colors"
         >
           Xem tất cả sản phẩm nổi bật <ArrowRight className="h-5 w-5" />
